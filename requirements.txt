@@ -1,0 +1,4 @@
+praat-parselmouth
+praat-textgrids
+requests
+TTS
