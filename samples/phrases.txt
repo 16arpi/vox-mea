@@ -1,0 +1,14 @@
+affaire-interessante.wav
+C'est une affaire intéressante, quand pensez vous ?
+
+je-cesar.wav
+Bonjour, je m'appelle César, j'habite à Paris et j'ai vingt-cinq ans
+
+concu-synthese.wav
+J'ai conçu cette synthèse vocale à partir de ma propre voix
+
+franprix.wav
+Tu veux que je te prenne des trucs au franprix ?
+
+leroi-merlin.wav
+Du bristole et de la naphtaline de chez leroi merlin
