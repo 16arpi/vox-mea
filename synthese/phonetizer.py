@@ -16,6 +16,11 @@ class Phonetizer:
     def __init__(self):
         self.SAMPA = re.compile(r'^([a-z]|[A-Z]|[0-9]|~|@)+$')
 
+    """
+    Fonction de netoyage des codes SAMPA de MAUS.
+    On en remplace quelques uns par ceux utilisés
+    dans l'annotation des logatomes.
+    """
     def clean_sampa(self, code: str):
         if '-' in code:
             code = code.replace('-', '')
@@ -113,9 +118,6 @@ class CoquiTTSPhonetizer(Phonetizer):
                 if res.status_code != 200:
                     raise Exception(f"Erreur lors du contact avec webservice MAUS (code {res.status_code})")
 
-        #with open(tts_output_tg, 'w') as file_tg:
-        #    file_tg.write(res.text)
-
         maus_result = ET.fromstring(res.text)
 
         print("mause result", maus_result)
@@ -143,7 +145,7 @@ class CoquiTTSPhonetizer(Phonetizer):
             start = e.xmin
             end = e.xmax
 
-            # Experimental : five f0 steps
+            # Four f0 steps
             f0_steps = map(lambda x: ((end - start) / 5) * x, range(1, 5))
             f0s = [pitchs.get_value_at_time(start + a) for a in f0_steps]
             length = end - start
