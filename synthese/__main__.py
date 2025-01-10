@@ -2,7 +2,6 @@ import argparse
 
 from .phonetizer import CoquiTTSPhonetizer, PraatPhonetizer
 from .synthese import Synthetiseur
-from .gui import SynthetiseurGUI
 
 parser = argparse.ArgumentParser(
     prog="./synthese",
@@ -23,23 +22,14 @@ parser.add_argument(
     default=False, action="store_true",
     help="Utiliser l'ancien phonetiseur basé sur Espeak. Utilise la synthèse neuronale sinon."
 )
-parser.add_argument(
-    '-g', '--gui',
-    default=False, action="store_true",
-    help="Lancer le mode graphique du programme"
-)
 
 args = parser.parse_args()
 
+synthese = Synthetiseur(
+    ("./diphones/logatomes.wav", "./diphones/logatomes.TextGrid"),
+    use_phonemes=args.never_use_phonemes,
+    phonetizer=PraatPhonetizer() if args.legacy_phonetizer else CoquiTTSPhonetizer()
+)
 
-if args.gui:
-    gui = SynthetiseurGUI()
-    gui.run()
-else:
-    synthese = Synthetiseur(
-        ("./diphones/logatomes.wav", "./diphones/logatomes.TextGrid"),
-        use_phonemes=args.never_use_phonemes,
-        phonetizer=PraatPhonetizer() if args.legacy_phonetizer else CoquiTTSPhonetizer()
-    )
-    output = synthese.speak(args.text)
-    synthese.save(output, args.output)
+output = synthese.speak(args.text)
+synthese.save(output, args.output)

@@ -1,11 +1,12 @@
 import math
 import re
+import random
 
 from parselmouth import Sound, WindowShape, SoundFileFormat
 from parselmouth.praat import call
 from textgrids import TextGrid
 
-from .phonetizer import PraatPhonetizer, CoquiTTSPhonetizer
+from .phonetizer import CoquiTTSPhonetizer
 
 SAMPA = re.compile(r'^([a-z]|[A-Z]|[0-9]|~|@)+$')
 SAMPA_REPLACEMENTS = {
@@ -13,7 +14,6 @@ SAMPA_REPLACEMENTS = {
     "e": "E",
     "w": "o"
 }
-
 
 class Synthetiseur:
     """
@@ -26,7 +26,7 @@ class Synthetiseur:
     Si rien n'y fait, qu'aucun diphone ne peut être trouvé,
     on renvoie deux phonèmes qui ne se suivent pas.
     """
-    def get_diphone_or_replacement(self, diphones, p1, p2):
+    def _get_diphone_or_replacement(self, diphones, p1, p2):
         rep1 = SAMPA_REPLACEMENTS.get(p1)
         rep2 = SAMPA_REPLACEMENTS.get(p2)
 
@@ -65,7 +65,7 @@ class Synthetiseur:
     Nettoie les codes SAMPA fourni par espeak
     """
 
-    def check_diphones(self, phonetic, diphones):
+    def _check_diphones(self, phonetic, diphones):
         needed = [(phonetic[i]["label"], phonetic[i+1]["label"]) for i in range(len(phonetic) - 1)]
 
         missing = [e for e in needed if e not in diphones.keys()]
@@ -76,7 +76,7 @@ class Synthetiseur:
                 for (a, b) in missing:
                     print(f'- {a}{b}')
 
-    def clean_sampa(self, code: str):
+    def _clean_sampa(self, code: str):
         if '-' in code:
             code = code.replace('-', '')
         if code == '2' or code == 'Y':
@@ -91,7 +91,7 @@ class Synthetiseur:
     Assigner (start, middle, end)
     Retourner dico
     """
-    def voicePhonemes(self, textgrid, textgrid_level=1, textgrid_label="phonemes"):
+    def _voicePhonemes(self, textgrid, textgrid_level=1, textgrid_label="phonemes"):
         # return phonemes
         segms = textgrid[textgrid_label]
         grid_size = len(segms)
@@ -111,7 +111,7 @@ class Synthetiseur:
 
         return result
 
-    def get_phoneme_from_diphones(self, diphones, label, pos):
+    def _get_phoneme_from_diphones(self, diphones, label, pos):
         # Pos : true = left / false = right
         for diph, vals in diphones.items():
             (p1, p2) = diph
@@ -125,7 +125,7 @@ class Synthetiseur:
     => Ce faisant, enregistrer le temps de fin + début des phonemes
     Retourner output, phonemes[start, stop]
     """
-    def synthesis(self, phonetic_data, voice_sound, diphones):
+    def _synthesis(self, phonetic_data, voice_sound, diphones):
         # return output, phonemes enrichis par leur temps
         zeroes = call(self.voice_sound, "To PointProcess (zeroes)", 1, "yes", "no")
         blank = voice_sound.extract_part(0, 0.01, WindowShape.RECTANGULAR, 1, False)
@@ -139,7 +139,7 @@ class Synthetiseur:
             phoneme1_label = phonetic_data[i]["label"]
             phoneme2_label = phonetic_data[i+1]["label"]
 
-            (d_start, d_middle1, d_middle2, d_end) = self.get_diphone_or_replacement(
+            (d_start, d_middle1, d_middle2, d_end) = self._get_diphone_or_replacement(
                 diphones,
                 phoneme1_label,
                 phoneme2_label
@@ -207,7 +207,7 @@ class Synthetiseur:
     Appliquer les changements
     Retourner output
     """
-    def postSynthesis(self, pre_output, phonemes):
+    def _postSynthesis(self, pre_output, phonemes):
         # Instance manipulation pre_output (pitch, )
         manipulation = call(pre_output, "To Manipulation", 0.01, 75, 600)
 
@@ -255,19 +255,17 @@ class Synthetiseur:
 
     def __init__(
         self,
-        sentence,
         voice=("./diphones/logatomes.wav", "./diphones/logatomes.TextGrid"),
-        output="output.wav",
         use_phonemes=False,
         phonetizer=CoquiTTSPhonetizer()):
 
+        self.hash = '%032x' % (random.getrandbits(128))
         self.use_phonemes = use_phonemes
         (self.voice_sound, self.voice_textGrid) = (Sound(voice[0]), TextGrid(voice[1]))
         self.phonetizer = phonetizer
-        self.diphones = self.voicePhonemes(self.voice_textGrid)
+        self.diphones = self._voicePhonemes(self.voice_textGrid)
 
     def speak(self, sentence):
-
         # Processing pipeline
         self.phonetic_data = list(self.phonetizer.phonetic(sentence))
 
@@ -275,15 +273,15 @@ class Synthetiseur:
         print("".join([a["label"] for a in self.phonetic_data]))
 
         # Checking diphones availability
-        self.check_diphones(self.phonetic_data, self.diphones)
+        self._check_diphones(self.phonetic_data, self.diphones)
 
-        self.pre_output, self.phonetic_data = self.synthesis(
+        self.pre_output, self.phonetic_data = self._synthesis(
             self.phonetic_data,
             self.voice_sound,
             self.diphones
         )
 
-        return self.postSynthesis(self.pre_output, self.phonetic_data)
+        return self._postSynthesis(self.pre_output, self.phonetic_data)
 
 
 
